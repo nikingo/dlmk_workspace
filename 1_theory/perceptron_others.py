@@ -83,4 +83,4 @@ def XOR_learn():
 
 #OR_learn()
 #NOT_learn()
-#XOR_learn()
+#XOR_learn()    #it doesn't sucess learning.
