@@ -13,6 +13,18 @@ def XOR_forward(xs, w, b, w2, b2, w_out, b_out):
     z2 = sigmoid(forward(z, w2, b2))
     return z, z2, sigmoid(forward(z2, w_out, b_out))
 
+class AffineLayer():
+
+    def __init__(self, input_num, output_num):
+        self.w = np.random.normal(0, 1, [input_num, output_num])
+        self.b = np.random.normal(0, 1, [output_num])
+
+    def forward(self, xs):
+        return np.dot(xs, self.w) + self.b
+
+    def backward(self):
+        print("backward")
+
 def learn(xs, ts, w, b, w2, b2, w_out, b_out, lr, iteration):
 
     for _ in range(iteration):
@@ -83,4 +95,12 @@ def XOR_learn():
 
         print(XOR_forward(xs, w, b, w2, b2, w_out, b_out))
 
-XOR_learn()
+#XOR_learn()
+
+np.random.seed(0)
+xs = np.array([[0,0], [0,1], [1,0], [1,1]], dtype=np.float32)
+ts = np.array([[0], [1], [1], [0]], dtype=np.float32)
+
+l1 = AffineLayer(2, 2)
+print(l1.w, l1.b)
+print(l1.forward(xs))
