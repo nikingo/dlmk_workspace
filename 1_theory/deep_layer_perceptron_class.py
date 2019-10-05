@@ -35,6 +35,26 @@ class AffineLayer():
 
         return En_w, En_b, En_x
 
+class Model:
+
+    def __init__(self, layers, lr=0.1):
+        self.layers = layers
+        self.lr = lr
+
+    def forward(self, xs):
+        y = xs
+        for l in layers:
+            y = l.forward(y)
+        
+        return y
+
+    def backward(self, En):
+        dx = En
+        for l in layers[::-1]:
+            dw, db, dx = l.backward(dx)
+            l.w -= dw * self.lr
+            l.b -= db * self.lr
+
 
 def learn(xs, ts, w, b, w2, b2, w_out, b_out, lr, iteration):
 
@@ -107,26 +127,15 @@ def XOR_learn():
         print(XOR_forward(xs, w, b, w2, b2, w_out, b_out))
 
 
-def learn_layer(xs, ts, layers, iteration, lr=0.1):
+def learn_layer(xs, ts, layers, iteration):
 
     for i in range(iteration):
 
-        y1 = layers[0].forward(xs)
-        y2 = layers[1].forward(y1)
-        #print(l1.w, l1.b)
-        #print(y1)
-        #print(l2.w, l2.b)
-        #print(y2)
+        y = model.forward(xs)
+        
+        En = -(ts - y)
 
-        En = -(ts - y2)
-
-        dw2, db2, dx2 = layers[1].backward(En)
-        l2.w -= dw2 * lr
-        l2.b -= db2 * lr
-
-        dw, db, dx = layers[0].backward(dx2)
-        l1.w -= dw * lr
-        l1.b -= db * lr
+        model.backward(En)
 
 #XOR_learn()
 
@@ -138,9 +147,10 @@ l1 = AffineLayer(2, 2)
 l2 = AffineLayer(2, 1)
 layers = [l1, l2]
 
-learn_layer(xs, ts, layers, 5000)
+model = Model(layers)
 
-y1 = layers[0].forward(xs)
-y2 = layers[1].forward(y1)
+learn_layer(xs, ts, model, 5000)
 
-print(y2)
+y = model.forward(xs)
+
+print(y)
