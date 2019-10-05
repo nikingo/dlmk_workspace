@@ -28,14 +28,14 @@ def learn(xs, ts, w, b, w_out, b_out, lr, iteration):
         #print("En_w:", En_w)
         En_b = np.dot(np.ones(ts.shape[0]), En_out)      #二乗誤差のbに関する微分 = dys/db_out * dE/dys
         #print("En_b:", En_b)
-        En_z = np.dot(w_out, En_out.T)  #二乗誤差のzに関する微分 = dys/dz * dE/dys
+        En_z = np.dot(En_out, w_out.T)  #二乗誤差のzに関する微分 = dys/dz * dE/dys
         w_out -= En_w * lr      #パラメータの更新
         b_out -= En_b * lr
         #print("w_out", "b_out", w_out, b_out)
 
         #print("En_z:", En_z)
 
-        En_y = (1 - z) * z * En_z.T       #二乗誤差のy=[y1,y2]に関する微分 = dz / dy * dE/dz  ※(z = sigmoid(y))
+        En_y = (1 - z) * z * En_z       #二乗誤差のy=[y1,y2]に関する微分 = dz / dy * dE/dz  ※(z = sigmoid(y))
 
         #print("En_y:", En_y)
 
