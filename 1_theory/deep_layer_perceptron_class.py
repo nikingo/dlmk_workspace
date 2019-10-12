@@ -2,16 +2,8 @@ import os
 import glob
 import numpy as np
 
-def forward(xs, w, b):
-    return np.dot(xs, w) + b
-
 def sigmoid(xs):
     return 1.0 / (1.0 + np.exp(-xs))
-
-def XOR_forward(xs, w, b, w2, b2, w_out, b_out):
-    z = sigmoid(forward(xs, w, b))
-    z2 = sigmoid(forward(z, w2, b2))
-    return z, z2, sigmoid(forward(z2, w_out, b_out))
 
 class AffineLayer():
 
@@ -19,21 +11,39 @@ class AffineLayer():
         self.w = np.random.normal(0, 1, [input_num, output_num])
         self.b = np.random.normal(0, 1, [output_num])
         self.activation_func = sigmoid
-        self.x = None
-        self.y = None
 
     def forward(self, xs):
         self.xs = xs
-        self.ys = self.activation_func(np.dot(xs, self.w) + self.b)
-        return self.ys
+        return np.dot(xs, self.w) + self.b
 
-    def backward(self, En):
-        En_out = En * self.ys * (1 - self.ys)
+    def backward(self, En, lr):
+        En_out = En
         En_w = np.dot(self.xs.T, En_out)         #二乗誤差( 1/2(ts-ys) )のw_outに関する微分 = dys/dw * dE/dys
         En_b = np.dot(np.ones(En_out.shape[0]), En_out)      #二乗誤差のbに関する微分 = dys/db * dE/dys
         En_x = np.dot(En_out, self.w.T) #二乗誤差のxに関する微分 = dys/dx2 * dE/dys
 
-        return En_w, En_b, En_x
+        self.w -= En_w * lr
+        self.b -= En_b * lr
+
+        return En_x
+
+
+class SigmoidLayer():
+
+    def __init__(self):
+        self.ys = None
+
+    def sigmoid(self, xs):
+        return 1.0 / (1.0 + np.exp(-xs))
+
+    def forward(self, xs):
+        self.ys = self.sigmoid(xs)
+        return self.ys
+
+    def backward(self, En, lr):
+        return En * self.ys * (1 - self.ys)
+
+        
 
 class Model:
 
@@ -43,91 +53,23 @@ class Model:
 
     def forward(self, xs):
         y = xs
-        for l in layers:
+        for l in self.layers:
             y = l.forward(y)
         
         return y
 
     def backward(self, En):
         dx = En
-        for l in layers[::-1]:
-            dw, db, dx = l.backward(dx)
-            l.w -= dw * self.lr
-            l.b -= db * self.lr
+        for l in self.layers[::-1]:
+            dx = l.backward(dx, self.lr)
+
+    def loss(self, xs, ts):
+        ys = self.forward(xs)
+        l = np.mean(np.abs(ys - ts))
+        return l 
 
 
-def learn(xs, ts, w, b, w2, b2, w_out, b_out, lr, iteration):
-
-    for _ in range(iteration):
-
-        #print("w s:", w)
-
-        z1, z2, ys = XOR_forward(xs, w, b, w2, b2, w_out, b_out)
-        #print("z", z)
-        #print("z2", z2)
-        #print("ys:", ys)
-
-        En_out = -(ts - ys) * ys * (1 - ys) #二乗誤差( 1/2(ts-ys) ) の ysに関する微分
-        #print("En:", En_out)
-        En_w = np.dot(z2.T, En_out)         #二乗誤差( 1/2(ts-ys) )のw_outに関する微分 = dys/dw_out * dE/dys
-        #print("En_w:", En_w)
-        En_b = np.dot(np.ones(En_out.shape[0]), En_out)      #二乗誤差のbに関する微分 = dys/db_out * dE/dys
-        #print("En_b:", En_b)
-        En_z2 = np.dot(En_out, w_out.T) #二乗誤差のz2に関する微分 = dys/dz2 * dE/dys
-        w_out -= En_w * lr
-        b_out -= En_b * lr
-        #print("w_out", "b_out", w_out, b_out)
-
-        #print("En_z:", En_z)
-
-        En_y2 = (1 - z2) * z2 * En_z2       #二乗誤差のy2=[y21,y22]に関する微分 = dz2 / dy2 * dE/dz2  ※(z2 = sigmoid(y2))
-
-        #print("En_y:", En_y)
-
-        En_w_2 = np.dot(z1.T, En_y2)         #二乗誤差のw2に関する微分 = dy2 / dw2 * dE / dy2
-        #print("En_w_1:", En_w_1)
-        w2 -= En_w_2 * lr
-
-        En_b_2 = np.dot(np.ones(En_y2.shape[0]), En_y2)    #二乗誤差のbに関する微分 = dy2 / db2 * dE / dy
-        #print("En_b_1:", En_b_1)
-        b2 -= En_b_2 * lr
-        #print("w, b", w, b)
-
-        En_z1 = np.dot(En_y2, w2.T) #二乗誤差のzに関する微分 = dy2/dz * dE/dy2
-
-
-        En_y1 = (1 - z1) * z1 * En_z1   #二乗誤差のy1=[y11,y12]に関する微分 = dz1 / dy1 * dE/dz1  ※(z1 = sigmoid(y1))
-        En_w_1 = np.dot(xs.T, En_y1)         #二乗誤差のwに関する微分 = dy1 / dw1 * dE / dy1
-        w -= En_w_1 * lr
-        En_b_1 = np.dot(np.ones(En_y1.shape[0]), En_y1)    #二乗誤差のbに関する微分 = dy1 / db1 * dE / dy1
-        b -= En_b_1 * lr
-
-def XOR_learn():
-
-        np.random.seed(0)
-        xs = np.array([[0,0], [0,1], [1,0], [1,1]], dtype=np.float32)
-        ts = np.array([[0], [1], [1], [0]], dtype=np.float32)
-
-        w = np.random.normal(0, 1, [2,2])
-        b = np.random.normal(0, 1, [2])
-        w2 = np.random.normal(0, 1, [2,2])
-        b2 = np.random.normal(0, 1, [2])
-        w_out = np.random.normal(0, 1, [2, 1])
-        b_out = np.random.normal(0, 1, [1])
-        print("w s:", w, "b s:", b)
-        print("w_out s:", w_out, "b_out s:", b_out)
-
-        #iteration = 1
-        iteration = 10000
-
-        lr = 0.1
-
-        learn(xs, ts, w, b, w2, b2, w_out, b_out, lr, iteration)
-
-        print(XOR_forward(xs, w, b, w2, b2, w_out, b_out))
-
-
-def learn_layer(xs, ts, layers, iteration):
+def learn_layer(xs, ts, model, iteration):
 
     for i in range(iteration):
 
@@ -137,20 +79,30 @@ def learn_layer(xs, ts, layers, iteration):
 
         model.backward(En)
 
+        print(model.loss(xs, ts))
+
 #XOR_learn()
 
-np.random.seed(0)
-xs = np.array([[0,0], [0,1], [1,0], [1,1]], dtype=np.float32)
-ts = np.array([[0], [1], [1], [0]], dtype=np.float32)
+def XOR_sample():
 
-l1 = AffineLayer(2, 2)
-l2 = AffineLayer(2, 1)
-layers = [l1, l2]
+    np.random.seed(0)
+    xs = np.array([[0,0], [0,1], [1,0], [1,1]], dtype=np.float32)
+    ts = np.array([[0], [1], [1], [0]], dtype=np.float32)
 
-model = Model(layers)
+    l1 = AffineLayer(2, 64)
+    l1a = SigmoidLayer()
+    l2 = AffineLayer(64, 32)
+    l2a = SigmoidLayer()
+    l3 = AffineLayer(32, 1)
+    l3a = SigmoidLayer()
+    layers = [l1, l1a, l2, l2a, l3, l3a]
 
-learn_layer(xs, ts, model, 5000)
+    model = Model(layers)
 
-y = model.forward(xs)
+    learn_layer(xs, ts, model, 5000)
 
-print(y)
+    y = model.forward(xs)
+
+    print(y)
+
+XOR_sample()
