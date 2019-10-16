@@ -2,15 +2,11 @@ import os
 import glob
 import numpy as np
 
-def sigmoid(xs):
-    return 1.0 / (1.0 + np.exp(-xs))
-
 class AffineLayer():
 
-    def __init__(self, input_num, output_num, activation=sigmoid):
+    def __init__(self, input_num, output_num):
         self.w = np.random.normal(0, 1, [input_num, output_num])
         self.b = np.random.normal(0, 1, [output_num])
-        self.activation_func = sigmoid
 
     def forward(self, xs):
         self.xs = xs
@@ -43,41 +39,78 @@ class SigmoidLayer():
     def backward(self, En, lr):
         return En * self.ys * (1 - self.ys)
 
-        
+class SquareError():
+
+    def __init__(self):
+        self.ys = None
+
+    def forward(self, ys, ts):
+        self.ys = ys
+        return ((ts - ys)**2.0) / 2.0
+
+    def backward(self, ys, ts):
+        return -(ts - self.ys)
+
+class SigmoidCrossEntropy():
+
+    def __init__(self):
+        self.ys = None
+
+    def sigmoid(self, xs):
+        return 1.0 / (1.0 + np.exp(-xs))
+
+    def CrossEntropy(self, ys, ts):
+        #print(ys)
+        return -ts * np.log(ys) - (1.0 - ts) * np.log(1.0 - ys)
+
+    def forward(self, ys, ts):
+        ys = self.sigmoid(ys)
+        self.ys = ys
+        return self.CrossEntropy(ys, ts)
+
+    def backward(self, ys, ts):
+        return -(ts - self.ys)
+
 
 class Model:
 
-    def __init__(self, layers, lr=0.1):
+    def __init__(self, layers, loss_layer, lr=0.1):
         self.layers = layers
         self.lr = lr
+        self.loss_layer = loss_layer
 
-    def forward(self, xs):
+    def forward(self, xs, ts):
         y = xs
         for l in self.layers:
             y = l.forward(y)
-        
+        y = self.loss_layer.forward(y, ts)
         return y
 
-    def backward(self, En):
-        dx = En
+    def backward(self, ys, ts):
+        dx = self.loss_layer.backward(ys, ts)
         for l in self.layers[::-1]:
             dx = l.backward(dx, self.lr)
 
+    def predict(self, xs, ts):
+        y = xs
+        for l in self.layers:
+            y = l.forward(y)
+        return y
+
     def loss(self, xs, ts):
-        ys = self.forward(xs)
-        l = np.mean(np.abs(ys - ts))
-        return l 
+        l = self.forward(xs, ts)
+        return np.mean(l)
 
 
 def learn_layer(xs, ts, model, iteration):
 
     for i in range(iteration):
 
-        y = model.forward(xs)
-        
-        En = -(ts - y)
+        ys = model.forward(xs, ts)
 
-        model.backward(En)
+        #print(ys)
+
+        model.backward(ys, ts)
 
         print(model.loss(xs, ts))
 
@@ -97,12 +130,39 @@ def XOR_sample():
     l3a = SigmoidLayer()
     layers = [l1, l1a, l2, l2a, l3, l3a]
 
-    model = Model(layers)
+    loss_layer = SquareError()
+
+    model = Model(layers, loss_layer)
 
     learn_layer(xs, ts, model, 5000)
 
-    y = model.forward(xs)
+    y = model.predict(xs, ts)
 
     print(y)
 
-XOR_sample()
+
+def XOR_sample2():
+
+    np.random.seed(0)
+    xs = np.array([[0,0], [0,1], [1,0], [1,1]], dtype=np.float32)
+    ts = np.array([[0], [1], [1], [0]], dtype=np.float32)
+
+    l1 = AffineLayer(2, 64)
+    l1a = SigmoidLayer()
+    l2 = AffineLayer(64, 32)
+    l2a = SigmoidLayer()
+    l3 = AffineLayer(32, 1)
+    layers = [l1, l1a, l2, l2a, l3]
+
+    loss_layer = SigmoidCrossEntropy()
+
+    model = Model(layers, loss_layer)
+
+    learn_layer(xs, ts, model, 5000)
+
+    y = model.predict(xs, ts)
+
+    print(y)
+
+#XOR_sample()
+#XOR_sample2()
