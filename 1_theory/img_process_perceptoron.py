@@ -15,7 +15,7 @@ img_height, img_width = 64, 64
 
 np.random.seed(0)
 
-xs, ts, file_list = data_load(data_path, img_height, img_width, hflip=True, vflip=True, rot=[angle for angle in range(0,360,15)])
+xs, ts, file_list = data_load(data_path, img_height, img_width, hflip=True, vflip=True, rot=[angle for angle in range(0,360,10)])
 test, testlabels, file_list = data_load(test_path, img_height, img_width)
 
 ind_batch = get_shuffled_batch_ind(len(ts), 64, 200)
@@ -43,7 +43,7 @@ def sample1():
 
     loss_layer = SquareError()
 
-    model = Model(layers, loss_layer, lr=0.1)
+    model = Model(layers, loss_layer, lr=0.01)
 
     print("test before learning")
     for test_xs, test_ts in zip(test, testlabels):
