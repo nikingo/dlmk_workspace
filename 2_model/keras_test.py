@@ -13,9 +13,10 @@ import keras.optimizers as opt
 #To use confusion matrix
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn import decomposition as pca
+import torch
+import torchvision
 
 #from myPackage import preprpcess as pp
-
 
 (x_train, y_train), (x_test, y_test) = mnist.load_data()    #read img data of 28*28
 

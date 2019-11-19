@@ -15,7 +15,7 @@ def data_load(img_path, img_height, img_width, hflip=False, vflip=False, rot=[])
         CLS.append(dir_path.split('\\')[-1])
 
     for dir_path in glob(img_path + '/*'):
-        for path in glob(dir_path + '/*')[:10]:
+        for path in glob(dir_path + '/*'):
             img = cv2.imread(path)
 
             if(img is None):
