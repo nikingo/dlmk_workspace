@@ -16,8 +16,8 @@ import torch
 import torchvision
 import torch.nn.functional as F
 
-num_classes = 10
-img_height, img_width = 28, 28
+num_classes = 2
+img_height, img_width = 64, 64
 GPU = False
 torch.manual_seed(0)
 
@@ -73,7 +73,7 @@ class Simplenet(torch.nn.Module):
     def __init__(self):
         super(Simplenet, self).__init__()
 
-        self.conv1_1 = torch.nn.Conv2d(1, 16, kernel_size=3, padding=1)
+        self.conv1_1 = torch.nn.Conv2d(3, 16, kernel_size=3, padding=1)
         self.bn1_1 = torch.nn.BatchNorm2d(16)
         self.conv1_2 = torch.nn.Conv2d(16, 16, kernel_size=3, padding=1)
         self.bn1_2 = torch.nn.BatchNorm2d(16)
@@ -100,47 +100,63 @@ class Simplenet(torch.nn.Module):
         x = self.fc_out(x)
         return x
 
-def train_net(model, train_loader, opt):
+def train_net(model, opt, data_path):
 
-    for epoch in range(3):
-        running_loss = 0.0
-        for i, (data, target) in enumerate(train_loader):
-            inputs, labels = data.to(device), target.to(device)
-            
-            # 勾配情報をリセット
-            opt.zero_grad()
-            
-            # 順伝播
-            outputs = model(inputs)
-            
-            # コスト関数を使ってロスを計算する
-            loss = F.cross_entropy(outputs, labels)
-            
-            # 逆伝播
-            loss.backward()
-            
-            # パラメータの更新
-            opt.step()
-            
-            running_loss += loss.item()
-            
-            if i % 100 == 99:
-                print('%d %d loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
-                running_loss = 0.0
+    xs, ys = data_load(data_path, 64, 64, hflip=True, vflip=True, rot=[angle for angle in range(0,360,10)])
 
-def test_net(model, test_loader):
+    ind_batch = get_shuffled_batch_ind(len(ys), 32, 10)
+    iter_per_epoch = len(ys) // 32
+
+    running_loss = 0
+    for i, (batch_xs, batch_ys) in enumerate(zip(xs[ind_batch], ys[ind_batch])):
+
+        inputs = torch.tensor(batch_xs, dtype=torch.float).to(device)
+        labels = torch.tensor(batch_ys, dtype=torch.long).to(device)
+        
+        # 勾配情報をリセット
+        opt.zero_grad()
+        
+        # 順伝播
+        outputs = model(inputs)
+        
+        # コスト関数を使ってロスを計算する
+        loss = F.cross_entropy(outputs, labels)
+        
+        # 逆伝播
+        loss.backward()
+        
+        # パラメータの更新
+        opt.step()
+        
+        running_loss += loss.item()
+            
+        if i % iter_per_epoch == iter_per_epoch - 1:
+            print('%d loss: %.3f' % (i + 1, running_loss / 100))
+            running_loss = 0.0
+
+def test_net(model, data_path):
 
     correct = 0.0
     total = 0
+
+    xs, ys = data_load(data_path, 64, 64, hflip=False, vflip=False)
+
     model.eval()
-    for (data, target) in test_loader:
-        inputs, labels = data.to(device), target.to(device)
+    for i in range(len(ys)):
+
+        input_shape = xs[i].shape
+        #print(input_shape)
+        x = xs[i].reshape(1, input_shape[0], input_shape[1],input_shape[2])
+
+        inputs = torch.tensor(x, dtype=torch.float).to(device)
+        labels = torch.tensor(ys[i], dtype=torch.long).to(device)
+
         outputs = model(inputs)
         _, predicted = torch.max(outputs.data, 1)
-        total += labels.size(0)
-        correct += predicted.eq(labels.view_as(predicted)).sum()
+        print('label:', labels.numpy(), 'out:', predicted.numpy())
         
-    print('Accuracy %d / %d = %f' % (correct, total, correct / total))
+        #total += labels.size(0)
+        #print('Accuracy %d / %d = %f' % (correct, total, correct / total))
 
 
 #model = Mynet()
@@ -149,23 +165,13 @@ model.to(device)
 
 opt = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
-
 base_path = os.path.abspath(os.path.dirname(__file__))
-data_path = os.path.join(base_path, 'mnist\\')
-print(data_path)
+data_dir = "..\\..\\DeepLearningMugenKnock\\Dataset\\train\\images"
+test_dir = "..\\..\\DeepLearningMugenKnock\\Dataset\\test\\images"
+data_path = os.path.join(base_path, data_dir)
+test_path = os.path.join(base_path, test_dir)
 
-train_data = torchvision.datasets.MNIST(data_path, train=True, download=True, transform=torchvision.transforms.ToTensor())
-train_loader = torch.utils.data.DataLoader(train_data,
-                         batch_size=128,
-                         shuffle=False)
-
-test_data = torchvision.datasets.MNIST(data_path, train=False, download=True, transform=torchvision.transforms.ToTensor())
-test_loader = torch.utils.data.DataLoader(test_data,
-                         batch_size=128,
-                         shuffle=False)
-
-
-#train_net(model, train_loader, opt)
-model.load_state_dict(torch.load(os.path.join(base_path, "cnn.pt")))
-test_net(model, test_loader)
+train_net(model, opt, data_path)
+#model.load_state_dict(torch.load(os.path.join(base_path, "cnn.pt")))
+test_net(model, test_path)
 #torch.save(model.state_dict(), os.path.join(base_path, "cnn.pt"))

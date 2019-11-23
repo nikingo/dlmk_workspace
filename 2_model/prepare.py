@@ -20,7 +20,7 @@ def data_load(img_path, img_height, img_width, hflip=False, vflip=False, rot=[])
 
             if(img is None):
                 continue
-            print(path, img.shape)
+            #print(path, img.shape)
             
             img_resize = cv2.resize(img, (img_height, img_width)).astype(np.float32)
             img_resize /= 255. 
@@ -54,7 +54,7 @@ def data_load(img_path, img_height, img_width, hflip=False, vflip=False, rot=[])
                 img_resize = image_rot[resize_offset[0]:resize_offset[0]+min_side, resize_offset[1]:resize_offset[1]+min_side]
                 img_resize = cv2.resize(img_resize, (img_height, img_width)).astype(np.float32)
                 img_resize /= 255. 
-                print(img_resize.shape)
+                #print(img_resize.shape)
                 xs.append(img_resize)
                 ys.append(y)
 
