@@ -5,3 +5,4 @@ test_img_dir
 */*.ckpt*
 */*.pt
 */checkpoint
+2_model/log_data

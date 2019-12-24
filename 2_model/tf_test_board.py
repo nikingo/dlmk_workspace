@@ -42,6 +42,9 @@ def conv2d(x, k=3, in_num=1, out_num=32, strides=1, activ=None, bias=True, name=
         x = tf.nn.bias_add(x, b)    #バイアスとして足し算処理、複数チャンネルにも対応するようブロードキャストして加算する
     if activ is not None:
         x = activ(x)    #引数の関数オブジェクトでアクティベーションする
+    
+    tf.summary.histogram('conv_weights', w)
+    tf.summary.histogram('conv_bias', b)
     return x
 
 
@@ -59,6 +62,7 @@ def fc(x, in_num=100, out_num=100, bias=True, activ=None, name='fc'):
         x = tf.add(x, b)    #1-Dの加算
     if activ is not None:
         x = activ(x)
+    
     return x
 
 def Mynet(x, keep_prob):
@@ -145,6 +149,7 @@ correct_pred = tf.equal(tf.argmax(preds, 1), tf.argmax(Y, 1))   #
 accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))    #
 
 # SummaryWriterでグラフを書く
+tf.summary.image('input', X, 10)
 tf.summary.scalar('loss', loss)
 tf.summary.scalar('accuracy', accuracy)
 merged = tf.summary.merge_all()
