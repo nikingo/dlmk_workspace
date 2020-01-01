@@ -5,4 +5,8 @@ test_img_dir
 */*.ckpt*
 */*.pt
 */checkpoint
+*/*/__pycache__
+*/*/*.ckpt*
+*/*/*.pt
+*/checkpoint
 2_model/log_data
