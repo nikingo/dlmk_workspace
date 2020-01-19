@@ -86,18 +86,18 @@ def LeNet(x):
     x = tf.nn.conv2d(x, w, strides=[1, 1, 1, 1], padding='VALID')
     b = tf.Variable(tf.random_normal([6]), name='b1')
     x = tf.nn.bias_add(x, b)
-    x = tf.nn.sigmoid(x)
     print(x.shape)
     x = tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
+    x = tf.nn.sigmoid(x)
     print(x.shape)
 
     w = tf.Variable(tf.random_normal([5, 5, 6, 16]), name='w2')  #重みの初期値の変数を定義
     x = tf.nn.conv2d(x, w, strides=[1, 1, 1, 1], padding='VALID')
     b = tf.Variable(tf.random_normal([16]), name='b2')
     x = tf.nn.bias_add(x, b)
-    x = tf.nn.sigmoid(x)
     print(x.shape)
     x = tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='VALID')
+    x = tf.nn.sigmoid(x)
     print(x.shape)
 
     mb, h, w, c = x.get_shape().as_list()   #ネットワークの返り値のshapeを取得
