@@ -38,14 +38,10 @@ print(type(train_data), train_data.size())
 train_label = train_tensor.targets.cpu()[:20000]
 print(type(train_label), train_label.size())
 
-# train_data = train_tensor.data.cpu().numpy()[:20000]
-# print(type(train_data), train_data.shape)
-# train_label = train_tensor.targets.cpu().numpy()[:20000]
-# print(type(train_label), train_label.shape)
-# test_data = test_tensor.data.cpu().numpy()[:2000]
-# print(type(test_data), test_data.shape)
-# test_label = test_tensor.targets.cpu().numpy()[:2000]
-# print(type(test_label), test_label.shape)
+test_data = test_tensor.data.cpu()[:2000]
+print(type(test_data), test_data.size())
+test_label = test_tensor.targets.cpu()[:2000]
+print(type(test_label), test_label.size())
 
 
 class Mynet(torch.nn.Module):
@@ -131,7 +127,7 @@ def train_net(model, opt, xs, ys):
 
     #xs, ys = data_load(data_path, 64, 64, hflip=True, vflip=True, rot=[angle for angle in range(0,360,10)])
 
-    ind_batch = get_shuffled_batch_ind(len(ys), 512, 10)
+    ind_batch = get_shuffled_batch_ind(len(ys), 1024, 10)
     iter_per_epoch = len(ys) // 512
 
     running_loss = 0
@@ -161,29 +157,29 @@ def train_net(model, opt, xs, ys):
             print('%d loss: %.3f' % (i + 1, running_loss / 100))
             running_loss = 0.0
 
-def test_net(model, data_path, xs, ys):
+
+def test_net(model, xs, ys):
 
     correct = 0.0
     total = 0
 
-    #xs, ys = data_load(data_path, 64, 64, hflip=False, vflip=False)
+    xs_size = xs.size()
 
     model.eval()
     for i in range(len(ys)):
 
-        input_shape = xs[i].shape
-        #print(input_shape)
-        x = xs[i].reshape(1, input_shape[0], input_shape[1],input_shape[2])
+        x = xs[i].reshape(1, 1, xs_size[1], xs_size[2]).float()
+        y = ys[i].reshape(1).long()
 
-        inputs = torch.tensor(x, dtype=torch.float).to(device)
-        labels = torch.tensor(ys[i], dtype=torch.long).to(device)
-
-        outputs = model(inputs)
+        outputs = model(x)
         _, predicted = torch.max(outputs.data, 1)
-        print('label:', labels.numpy(), 'out:', predicted.numpy())
+        print('label:', y.numpy(), 'out:', predicted.numpy())
         
-        #total += labels.size(0)
-        #print('Accuracy %d / %d = %f' % (correct, total, correct / total))
+        total += y.size(0)
+
+        correct += np.sum(y.numpy().reshape(-1, y.size(0)) == predicted.numpy().reshape(-1, y.size(0)))
+
+    print('Accuracy %d / %d = %f' % (correct, total, correct / total))
 
 
 #model = Mynet()
@@ -192,7 +188,7 @@ model.to(device)
 
 opt = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
-train_net(model, opt, train_data, train_label)
-#model.load_state_dict(torch.load(os.path.join(base_path, "cnn.pt")))
-#test_net(model, test_path)
+#train_net(model, opt, train_data, train_label)
 #torch.save(model.state_dict(), os.path.join(base_path, "cnn.pt"))
+model.load_state_dict(torch.load(os.path.join(base_path, "cnn.pt")))
+test_net(model, test_data, test_label)
