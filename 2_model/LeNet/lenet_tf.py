@@ -10,6 +10,8 @@ from glob import glob
 import os
 import sys
 
+## LeNet の tensorflow での実装
+
 #ToDo:ディレクトリ違ってもimportしたい
 base_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.join(base_path, '..\\'))
@@ -44,43 +46,11 @@ test_label = test_tensor.targets.cpu().numpy()[:2000]
 print(type(test_label), test_label.shape)
 
 
-def Mynet(x):
-
-    x = tf.pad(x, tf.constant([[0, 0,], [2, 2], [2, 2], [0, 0]]), "CONSTANT")
-    #print(x.shape)
-    w = tf.Variable(tf.random_normal([3, 3, 1, 5]), name='w1')  #重みの初期値の変数を定義
-    x = tf.nn.conv2d(x, w, strides=[1, 1, 1, 1], padding='SAME')
-    b = tf.Variable(tf.random_normal([5]), name='b1')
-    x = tf.nn.bias_add(x, b)
-    x = tf.nn.relu(x)
-    #print(x.shape)
-    x = tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-    #print(x.shape)
-
-    w = tf.Variable(tf.random_normal([3, 3, 5, 10]), name='w2')  #重みの初期値の変数を定義
-    x = tf.nn.conv2d(x, w, strides=[1, 1, 1, 1], padding='SAME')
-    b = tf.Variable(tf.random_normal([10]), name='b2')
-    x = tf.nn.bias_add(x, b)
-    x = tf.nn.relu(x)
-    #print(x.shape)
-    x = tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-    #print(x.shape)
-
-    mb, h, w, c = x.get_shape().as_list()   #ネットワークの返り値のshapeを取得
-    x = tf.reshape(x, [-1, h*w*c])  #画像・チャンネルを一列のデータに均す
-    w = tf.Variable(tf.random_normal([w*h*c, num_classes]), name='w3')
-    x = tf.matmul(x, w) #行列積
-    b = tf.Variable(tf.random_normal([num_classes]), name='b3')
-    x = tf.add(x, b)    #1-Dの加算
-    #x = tf.nn.relu(x)
-    #print(x.shape)
-
-    return x
-
-
 def LeNet(x):
 
+    #画像サイズを32にするためのpadding
     x = tf.pad(x, tf.constant([[0, 0,], [2, 2], [2, 2], [0, 0]]), "CONSTANT")
+    
     print(x.shape)
     w = tf.Variable(tf.random_normal([5, 5, 1, 6]), name='w1')  #重みの初期値の変数を定義
     x = tf.nn.conv2d(x, w, strides=[1, 1, 1, 1], padding='VALID')
@@ -100,21 +70,23 @@ def LeNet(x):
     x = tf.nn.sigmoid(x)
     print(x.shape)
 
-    mb, h, w, c = x.get_shape().as_list()   #ネットワークの返り値のshapeを取得
-    x = tf.reshape(x, [-1, h*w*c])  #画像・チャンネルを一列のデータに均す
-    w = tf.Variable(tf.random_normal([w*h*c, 120]), name='w3')
+
+    mb, height, width, c = x.get_shape().as_list()   #ネットワークの返り値のshapeを取得
+    x = tf.reshape(x, [-1, height*width*c])  #画像・チャンネルを一列のデータに均す
+    print(x.shape)
+    w = tf.Variable(tf.random_normal([height*width*c, 120], stddev=0.05), name='w3')
     x = tf.matmul(x, w) #行列積
     b = tf.Variable(tf.random_normal([120]), name='b3')
     x = tf.add(x, b)    #1-Dの加算
     print(x.shape)
 
-    w = tf.Variable(tf.random_normal([120, 64]), name='w4')
+    w = tf.Variable(tf.random_normal([120, 64], stddev=0.05), name='w4')
     x = tf.matmul(x, w) #行列積
     b = tf.Variable(tf.random_normal([64]), name='b4')
     x = tf.add(x, b)    #1-Dの加算
     print(x.shape)
 
-    w = tf.Variable(tf.random_normal([64, num_classes]), name='w5')
+    w = tf.Variable(tf.random_normal([64, num_classes], stddev=0.05), name='w5')
     x = tf.matmul(x, w) #行列積
     b = tf.Variable(tf.random_normal([num_classes]), name='b5')
     x = tf.add(x, b)    #1-Dの加算
@@ -125,8 +97,7 @@ def LeNet(x):
 
     return x
 
-
-def train_net(train, preds, accuracy, loss, merged, xs, ys):
+def train_net(train, accuracy, loss, merged, xs, ys):
     config = tf.ConfigProto()
     sess = tf.InteractiveSession(config=config)
 
@@ -143,7 +114,7 @@ def train_net(train, preds, accuracy, loss, merged, xs, ys):
     for i, (batch_xs, batch_ys) in enumerate(zip(xs[ind_batch], ys[ind_batch])):
 
         #_, sammary = sess.run([train, merged], feed_dict={X: batch_xs, Y: batch_ys})   #プレースホルダーの中身を確定、計算グラフ実行(train, accuracy, lossを実行)
-        _, pre, acc, los = sess.run([train, preds, accuracy, loss], feed_dict={X: batch_xs, Y: batch_ys})   #プレースホルダーの中身を確定、計算グラフ実行(train, accuracy, lossを実行)
+        _, acc, los = sess.run([train, accuracy, loss], feed_dict={X: batch_xs, Y: batch_ys})   #プレースホルダーの中身を確定、計算グラフ実行(train, accuracy, lossを実行)
         print("iter >>", i+1, ',loss >>', los, ',accuracy >>', acc)
         #print(pre)
 
@@ -175,6 +146,7 @@ def test_net(xs, ys):
 
 
 #train
+tf.reset_default_graph()
 X = tf.placeholder(tf.float32, [None, img_height, img_width, 1])    #入力のプレースホルダーを定義(noneはなんでもいい値)
 Y = tf.placeholder(tf.float32, [None, num_classes]) #ラベルのプレースホルダーを定義
 
@@ -184,7 +156,7 @@ logits = LeNet(X)
 
 preds = tf.nn.softmax(logits)   #Mynetの結果をsoftmaxする計算の定義
 loss = tf.reduce_mean(tf.losses.softmax_cross_entropy(logits=logits, onehot_labels=Y))  #Mynetの結果とラベルとの間で誤差関数の計算をする計算の定義
-optimizer = tf.train.AdamOptimizer(learning_rate=0.01) #最適化手段の定義
+optimizer = tf.train.MomentumOptimizer(learning_rate=0.01, momentum=0.9) #最適化手段の定義
 train = optimizer.minimize(loss)    #定義した最適化で、lossの結果に対して最適化を行う計算の定義
 
 correct_pred = tf.equal(tf.argmax(preds, 1), tf.argmax(Y, 1))   #
@@ -199,7 +171,7 @@ merged = tf.summary.merge_all()
 xs = train_data.reshape(-1, img_height, img_width, 1)
 ys = np.identity(num_classes)[train_label]
 #print(ys)
-train_net(train, correct_pred, accuracy, loss, merged, xs, ys)    #定義した計算を渡して学習sessionを実行させる
+train_net(train, accuracy, loss, merged, xs, ys)    #定義した計算を渡して学習sessionを実行させる
 
 
 #test

@@ -10,6 +10,8 @@ from glob import glob
 import os
 import sys
 
+## tensorflow での lenet。 なんか変 (Momentam のloss が発散して死んだり)
+
 #ToDo:ディレクトリ違ってもimportしたい
 base_path = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(os.path.join(base_path, '..\\'))

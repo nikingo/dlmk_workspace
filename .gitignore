@@ -10,3 +10,5 @@ test_img_dir
 */*/*.pt
 */checkpoint
 2_model/log_data
+2_model/Annotations
+2_model/Images
